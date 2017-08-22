@@ -1,0 +1,64 @@
+proxy_cache_path        /npm-cache-store levels=1:2 keys_zone=npm-cache:32m max_size=16g inactive=5d use_temp_path=off;
+
+resolver                8.8.8.8;
+
+log_format npm-cache '$remote_addr [$time_local] cache(status=$upstream_cache_status, level=$my_cache_level) $status $request';
+
+map $uri $my_cache_level {
+    default                      long;
+
+    # npm manifests
+    ~npmjs\.org/[^/]+$           short;
+    ~npmjs\.org/@[^/]+/[^/]+$    short;
+}
+
+server {
+    listen 81 default_server;
+    access_log /dev/stdout npm-cache;
+
+    # HOTFIX for npm organization urls which require encoded slash
+    location ~ ^/(https?)/registry.npmjs.org/@([^/]+)/([^/]+)$ {
+        set      $my_upstream_url $1://registry.npmjs.org/@$2%2f$3$is_args$args;
+        rewrite  . /__cache__/$my_cache_level last;
+    }
+
+    location ~ ^/(https?)/(.*)$ {
+        set      $my_upstream_url $1://$2$is_args$args;
+        rewrite  . /__cache__/$my_cache_level last;
+    }
+
+    location /__cache__/ {
+        internal;
+
+        proxy_redirect          ~^(https?)://(.*)$ /$1/$2;
+        proxy_send_timeout      90s;
+        proxy_read_timeout      90s;
+        proxy_http_version      1.1;
+        proxy_set_header        Accept-Encoding "";
+        proxy_ignore_headers    Cache-Control Expires;
+        proxy_cache             npm-cache;
+        proxy_cache_use_stale   error timeout;
+
+        proxy_hide_header       Cache-Control;
+        proxy_hide_header       Expires;
+
+        add_header              x-npm-cache $my_cache_level;
+
+        subs_filter_types       'application/ld+json' application/json;
+        subs_filter             (https?)://([^\s"'<]*\.npmjs\.org[^\s"'<]*) http://$host:81/$1/$2 ir;
+
+
+        location /__cache__/long {
+            proxy_cache_valid  200 301 302 30d;
+            proxy_cache_valid  404 1d;
+            proxy_pass         $my_upstream_url;
+        }
+
+        location /__cache__/short {
+            proxy_cache_valid  200 301 302 3h;
+            proxy_cache_valid  404 1d;
+            proxy_pass         $my_upstream_url;
+        }
+
+    }
+}
