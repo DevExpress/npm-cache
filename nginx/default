@@ -35,12 +35,13 @@ server {
         proxy_read_timeout      90s;
         proxy_http_version      1.1;
         proxy_set_header        Accept-Encoding "";
-        proxy_ignore_headers    Cache-Control Expires;
+        proxy_ignore_headers    Cache-Control Expires Set-Cookie;
         proxy_cache             npm-cache;
         proxy_cache_use_stale   error timeout;
 
         proxy_hide_header       Cache-Control;
         proxy_hide_header       Expires;
+        proxy_hide_header       Set-Cookie;
 
         add_header              x-npm-cache $my_cache_level;
 
