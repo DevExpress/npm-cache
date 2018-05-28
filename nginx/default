@@ -14,7 +14,7 @@ map $uri $my_cache_level {
 
 server {
     listen 81 default_server;
-    access_log /dev/stdout npm-cache;
+    access_log /var/log/nginx/access.log npm-cache;
 
     # HOTFIX for npm organization urls which require encoded slash
     location ~ ^/(https?)/registry.npmjs.org/@([^/]+)/([^/]+)$ {

@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+
+  nginx:
+    build:
+      context: ./nginx
+    image: private/npm-cache-nginx
+    container_name: npm-cache-nginx
+    ports:
+      - "81:81"
+    volumes:
+      - "store:/npm-cache-store"
+    logging:
+      options:
+        max-size: "100m"
+        max-file: "9"
+    restart: unless-stopped
+    command: [ "nginx", "-g", "daemon off;" ]
+
+  pinger:
+    depends_on:
+      - nginx
+    build:
+      context: ./pinger
+    image: private/npm-cache-pinger
+    container_name: npm-cache-pinger
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    logging:
+      driver: none
+    restart: unless-stopped
+    command: [ "/cmd.sh" ]
+
+volumes:
+  store:
