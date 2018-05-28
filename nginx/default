@@ -42,7 +42,7 @@ server {
 
         add_header              x-npm-cache $my_cache_level;
 
-        subs_filter_types       'application/ld+json' application/json;
+        subs_filter_types       'application/ld+json' application/json 'application/vnd.npm.install-v1+json';
         subs_filter             (https?)://([^\s"'<]*\.npmjs\.org[^\s"'<]*) http://$host:81/$1/$2 ir;
 
 
