@@ -16,9 +16,9 @@ server {
     listen 81 default_server;
     access_log /var/log/nginx/access.log npm-cache;
 
-    # HOTFIX for npm organization urls which require encoded slash
-    location ~ ^/(https?)/registry.npmjs.org/@([^/]+)/([^/]+)$ {
-        set      $my_upstream_url $1://registry.npmjs.org/@$2%2f$3$is_args$args;
+    location ~ ^/(https?)/registry.npmjs.org/(@?(devexpress|devextreme).*)$ {
+        set      $my_upstream_url http://172.17.0.1:4873/$2$is_args$args;
+        set      $my_cache_level bypass;
         rewrite  . /__cache__/$my_cache_level last;
     }
 
@@ -44,7 +44,7 @@ server {
 
         subs_filter_types       'application/ld+json' application/json 'application/vnd.npm.install-v1+json';
         subs_filter             (https?)://([^\s"'<]*\.npmjs\.org[^\s"'<]*) http://$host:81/$1/$2 ir;
-
+        subs_filter             http://172.17.0.1:4873/ http://$host:81/http/registry.npmjs.org/ i;
 
         location /__cache__/long {
             proxy_cache_valid  200 301 302 30d;
@@ -55,6 +55,12 @@ server {
         location /__cache__/short {
             proxy_cache_valid  200 301 302 3h;
             proxy_cache_valid  404 1d;
+            proxy_pass         $my_upstream_url;
+        }
+
+        location /__cache__/bypass {
+            proxy_no_cache     1;
+            proxy_cache_bypass 1;
             proxy_pass         $my_upstream_url;
         }
 
